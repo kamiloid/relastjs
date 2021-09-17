@@ -75,7 +75,22 @@ export default class App extends Rapp
 		// --------------------------------------------------------------------------------
 		this._view.iterators.items = `<p key='[k]'>[v]</p>`;
 
-		this._view.style =`button{font-size: 20px;}`;
+		this._view.style =`
+		@font-face {
+			font-family: 'aaarghnormal';
+			src: url('assets/fonts/aaargh-webfont.woff2') format('woff2'),
+				url('assets/fonts/aaargh-webfont.woff') format('woff');
+			font-weight: normal;
+			font-style: normal;
+		}
+		@font-face {
+			font-family: 'abelregular';
+			src: url('assets/fonts/abel-regular-webfont.woff2') format('woff2'),
+				url('assets/fonts/abel-regular-webfont.woff') format('woff');
+			font-weight: normal;
+			font-style: normal;
+		}
+		button{font-size: 20px;}`;
 
 		this._view.main = `<div>
 			<p>${this.get_state('a')}</p>
