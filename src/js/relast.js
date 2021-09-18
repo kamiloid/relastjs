@@ -191,13 +191,24 @@ export default class Rapp{
 			this.run_sub_mods(mod);
 		}
 	};
+	if_regex_eval = function(str_dom)
+	{
+		return str_dom.match(/\{\%if([:|a-z|A-Z|0-9|-|_|<|>|\\|\/|\s|=|'|\[|\]|"|#])*>\%\}/gm);
+	}
+	for_regex_eval = function(str_dom)
+	{
+		return str_dom.match(/\{\%for([:|a-z|A-Z|0-9|-|_|<|>|\\|\/|\s|=|'|\[|\]|"|#|\s|\,|\-])*\%\}/gm);
+	}
+	render_regex_eval = function(str_dom)
+	{
+		return str_dom.match(/\{\%render([:|a-z|A-Z|0-9|-|_|<|>|\/|\s|=|'|\[|\]|"|#])*\%\}/gm);
+	};
 	render_regex = function(str_dom)
 	{
-		let text = str_dom;
-		const regexp = text.match(/\{\%render([:|a-z|A-Z|0-9|-|_|<|>|\/|\s|=|'|\[|\]|"|#])*\%\}/gm);
+		const regexp = this.render_regex_eval(str_dom);
 		if(regexp !== null)
 		{
-			if(regexp.length === 0) return text;
+			if(regexp.length === 0) return str_dom;
 			for(let r of regexp)
 			{
 				const split = r.split(':');
@@ -209,19 +220,18 @@ export default class Rapp{
 				const html = split[2].substring(0, split[2].length - 2);
 				this._view.iterators[`${state}_items`] = html;
 				const render = this.render(state, `${state}_items`);
-				text = text.replace(r, render);
+				str_dom = str_dom.replace(r, render);
+				str_dom = this.html_regex(str_dom);
 			}
 		}
-		return text;
+		return str_dom;
 	};
 	for_regex = function(str_dom)
 	{
-		let text = str_dom;
-		const regexp = text.match(/\{\%for([:|a-z|A-Z|0-9|-|_|<|>|\\|\/|\s|=|'|\[|\]|"|#])*\%\}/gm);
+		const regexp = this.for_regex_eval(str_dom);
 		if(regexp)
 		{
-			const for_regex = str_dom.match();
-			if(regexp.length === 0) return text;
+			if(regexp.length === 0) return str_dom;
 			for(let r of regexp)
 			{
 				const split = r.split(':');
@@ -229,25 +239,43 @@ export default class Rapp{
 				if(split[1] === null || split[1] === undefined) continue;
 				if(split[2] === null || split[2] === undefined) continue;
 				try{
-					const limit = parseInt(split[1]);
+					let array_detector = split[1].match(/\[([a-z|A-Z|0-9|\,|\s|\-])+\]/g);
 					const html = split[2].substring(0, split[2].length - 2);
-					for(let i = 0; i < limit; i++)
+					if(array_detector)
 					{
-						str += html.replace(/(\[k\])+/g, i);
+						if(array_detector.length === 0) continue;
+						const split_keys = array_detector[0].replace('[', '').replace(']', '').trim().split(',');
+						for(let k of split_keys)
+						{
+							let v = '';
+							if(k.trim().replace(/\s/g, '').includes('-'))
+							{
+								v = k.trim().split('-')[1].trim();
+								k = k.trim().split('-')[0].trim().replace(/\s/g, '-');
+							}
+							str += html.replace(/(\[k\])+/g, k).replace(/(\[v\])+/g, v);
+						}
+					}else if(split[1].match(/([0-9])+/g))
+					{
+						const limit = parseInt(split[1]);
+						for(let i = 0; i < limit; i++)
+						{
+							str += html.replace(/(\[k\])+/g, i);
+						}
 					}
-				}catch(e){}
-				text = text.replace(r, str);
+				}catch(e){console.log(e);}
+				str_dom = str_dom.replace(r, str);
+				str_dom = this.html_regex(str_dom);
 			}
 		}
-		return text;
+		return str_dom;
 	};
 	if_regex = function(str_dom)
 	{
-		let text = str_dom;
-		const regexp = text.match(/\{\%if([:|a-z|A-Z|0-9|-|_|<|>|\\|\/|\s|=|'|\[|\]|"|#])*>\%\}/gm);
+		const regexp = this.if_regex_eval(str_dom);
 		if(regexp)
 		{
-			if(regexp.length === 0) return text;
+			if(regexp.length === 0) return str_dom;
 			for(let r of regexp)
 			{
 				const split = r.split(':');
@@ -292,11 +320,19 @@ export default class Rapp{
 					const resp_false = split.length === 4 ? split[3].substring(0, split[3].length - 2) : '';
 					
 					const html = final_result ? resp_true : resp_false;
-					text = text.replace(r, html);
+					str_dom = str_dom.replace(r, html);
+					str_dom = this.html_regex(str_dom);
 				}catch(e){console.log(e);}
 			}
 		}
-		return text;
+		return str_dom;
+	};
+	html_regex = function(str)
+	{
+		str = this.if_regex(str);
+		str = this.render_regex(str);
+		str = this.for_regex(str);
+		return str;
 	};
 	run_dom = function()
 	{
@@ -320,9 +356,7 @@ export default class Rapp{
 			str_dom += `${this._view[v]}`;
 		}
 
-		str_dom = this.render_regex(str_dom);
-		str_dom = this.for_regex(str_dom);
-		str_dom = this.if_regex(str_dom);
+		str_dom = this.html_regex(str_dom);
 
 		if(this._vdom)
 			this.clean_dom(this._vdom);
