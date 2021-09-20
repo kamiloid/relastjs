@@ -18,6 +18,7 @@ export default class Rapp{
 	_prev_states = {};
 	_rstates = {};
 	_istates = {};
+	// _uidstates = {};
 	_view = {main: '<div></div>', iterators: {}, style:`<style></style>`};
 	_net = {};
 	_mods = {};
@@ -126,9 +127,9 @@ export default class Rapp{
 		}
 		this.exec();
 	};
-	refresh = function(props = null)
+	update = function(props = null)
 	{
-		this.init(props);
+		this.init(props || this._props);
 	};
 	exec = function()
 	{
@@ -410,6 +411,7 @@ export default class Rapp{
 							if(state_buffer.length >= 1)
 							{
 								let state = state_buffer[0];
+								// this.set_node_state(state, n.parentNode, document.createElement(n.parentNode.tagName));
 								let value = this._states[state];
 								if(state_buffer.length > 1)
 								{
@@ -508,6 +510,7 @@ export default class Rapp{
 					{
 						v = v.replace('[state:', '').replace(']', '');
 						let state = v;
+						// this.set_node_state(state, n.parentNode, node.parentNode);
 						v = v.replace(v, this._states[state]);
 						this.add_binder(state, node, 'i');
 						if(n.tagName.toLowerCase() === 'input')
@@ -538,16 +541,12 @@ export default class Rapp{
 			type: type
 		});
 	};
-	state = function(key, value=null, update=true)
+	state = function(key, value=null)
 	{
 		if(!key) return;
 		if(key.trim() == '') return;
 		if(value === null || value === undefined) return this._states[key];
-		let reload = true;
-		if(this._states[key] === undefined)
-			reload = false;
-		if(this._istates[key])
-			reload = false;
+
 		this._prev_states[key] = this._states[key];
 		this._states[key] = value;
 
@@ -566,11 +565,7 @@ export default class Rapp{
 					node.innerHTML = this._states[key];
 			}
 		}
-		if(reload && this._update_dom && update)
-		{
-			this.init();
-			this._update_dom = false;
-		}
+		return {update: ()=>{this.update()}};
 	};
 	get_state = function(key)
 	{
