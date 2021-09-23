@@ -25,6 +25,11 @@ export default class Rapp{
 	_includes = {};
 	_props = {};
 	_app_sections = {};
+
+	//
+	// 
+
+
 	constructor(conf)
 	{
 		this._conf = conf;
@@ -337,200 +342,261 @@ export default class Rapp{
 	};
 	run_dom = function()
 	{
-		// let str_dom = this._view.main;
-		let str_dom = ``;
-		let str_styles = ``;
-		for(let v in this._view)
-		{
-			if(!this._view.hasOwnProperty(v)) continue;
-			if(v === 'iterators') continue;
-			if(!this._view[v]) continue;
-			if(v == 'style')
-			{
-				if(!this._view[v].includes('<style>'))
-					this._view[v] = `<style>${this._view[v]}`;
-				if(!this._view[v].includes('</style>'))
-					this._view[v] = `${this._view[v]}</style>`;
-				str_styles += this._view[v];
-				continue;
-			}
-			str_dom += `${this._view[v]}`;
-		}
+		let str_dom = this._view.main;
+
+
+
+		// let str_dom = ``;
+		// let str_styles = ``;
+		// for(let v in this._view)
+		// {
+		// 	if(!this._view.hasOwnProperty(v)) continue;
+		// 	if(v === 'iterators') continue;
+		// 	if(!this._view[v]) continue;
+		// 	if(v == 'style')
+		// 	{
+		// 		if(!this._view[v].includes('<style>'))
+		// 			this._view[v] = `<style>${this._view[v]}`;
+		// 		if(!this._view[v].includes('</style>'))
+		// 			this._view[v] = `${this._view[v]}</style>`;
+		// 		str_styles += this._view[v];
+		// 		continue;
+		// 	}
+		// 	str_dom += `${this._view[v]}`;
+		// }
 
 		str_dom = this.html_regex(str_dom);
+		this.translate(str_dom);
 
-		if(this._vdom)
-			this.clean_dom(this._vdom);
-		this._vdom = document.createElement('div');
-		if(this._rdom)
-			this.clean_dom(this._rdom);
-		this._rdom = document.createElement('div');
-		this._vdom.innerHTML = str_dom;
+		// if(this._vdom)
+		// 	this.clean_dom(this._vdom);
+		// this._vdom = document.createElement('div');
+		// if(this._rdom)
+		// 	this.clean_dom(this._rdom);
+		// this._rdom = document.createElement('div');
+		// this._vdom.innerHTML = str_dom;
 
-		this.analize_dom_node(this._vdom, this._rdom);
-		this._bbox.innerHTML = '';
-		for(let c of this._rdom.childNodes)
-			this._bbox.appendChild(c);
-		if(str_styles.trim() !== '')
+		// this.analize_dom_node(this._vdom, this._rdom);
+		// this._bbox.innerHTML = '';
+		// for(let c of this._rdom.childNodes)
+		// 	this._bbox.appendChild(c);
+		// if(str_styles.trim() !== '')
+		// {
+		// 	let styles = document.createElement('div');
+		// 	styles.innerHTML = str_styles;
+		// 	this._bbox.appendChild(styles);
+		// }
+		// if(this.rendered)
+		// 	this.rendered();
+	};
+	translate = function(html)
+	{
+		// console.log('-----------------------------------------');
+		// console.log(html);
+		// console.log('-----------------------------------------');
+		const root = document.createElement('div');
+		root.innerHTML = html;
+		let aux = root.childNodes[0];
+		const visual_root = this.translate_nodes(aux, this._bbox);
+		// console.log('-----------------------------------------');
+		// console.log(11, visual_root, this._bbox);
+		if(this._bbox && visual_root)
+			this._bbox.appendChild(visual_root);
+	};
+	translate_nodes = function(node, parent)
+	{
+		if(node === undefined || node === null) return null;
+		// Avoid comments nodes
+		if(node.nodeType === 8) return null;
+		// create node according the node
+		let n = document.createElement(node.tagName);
+		// check if the node is not textual element
+		if(node.nodeType !== 3 && node.tagName !== undefined)
 		{
-			let styles = document.createElement('div');
-			styles.innerHTML = str_styles;
-			this._bbox.appendChild(styles);
+			if(this._includes[node.tagName.toLowerCase()])
+			{
+				let ref_attr = node.attributes['ref'];
+				if(ref_attr)
+					ref_attr = ref_attr.name;
+				
+				let comp = this.get_comp(n.tagName);
+				comp._name = ref_attr || this._includes[node.tagName.toLowerCase()];
+				this._mods[comp._name] = comp;
+				comp._bbox = parent;
+				comp.init();
+			}
+			for(let child of node.childNodes)
+			{
+				const visual_child = this.translate_nodes(child, n);
+				if(visual_child)
+					if(n.tagName.toLowerCase() !== 'fragment')
+						n.appendChild(visual_child, n);
+					else{
+						parent.appendChild(visual_child, n);
+					}
+			}
+			if(this._includes[node.tagName.toLowerCase()] || node.tagName.toLowerCase() === 'fragment')
+				n = null;
+		}else{
+			node.nodeValue = node.nodeValue.trim();
+			let restrictions = node.nodeValue === '' || node.nodeValue.includes('\n') || node.nodeValue.includes('\t') || node.nodeValue.includes('\r') || node.nodeValue.includes('undefined') || node.nodeValue.includes('null');
+			if(restrictions)
+				return null;
+			n = document.createTextNode(node.nodeValue);
 		}
-		if(this.rendered)
-			this.rendered();
+		return n;
 	};
 	analize_dom_node = function(parent, new_parent)
 	{
-		if(!parent || !new_parent) return;
-		for(let n of parent.childNodes)
-		{
-			if(n.nodeType === 8) continue;
-			if(n.nodeType === 3 && !n.tagName)
-			{
-				n.nodeValue = n.nodeValue.trim();
-				let restrictions = n.nodeValue === '' || n.nodeValue.includes('\n') || n.nodeValue.includes('\t') || n.nodeValue.includes('\r') || n.nodeValue.includes('undefined') || n.nodeValue.includes('null');
-				if(restrictions)
-					continue;
-				if(n.nodeValue.includes('[state:'))
-				{
-					const state_regex = n.nodeValue.match(/\[state([:|a-z|A-Z|0-9|-|_])*\]/gm);
-					if(state_regex)
-					{
-						for(let r of state_regex)
-						{
-							const reg = r.replace('[state', '').replace(']', '');
-							const split = reg.trim().split(':');
-							let state_buffer = [];
-							for(let s of split)
-							{
-								if(s.trim() === '') continue;
-								state_buffer = [...state_buffer, s];
-							}
+		// if(!parent || !new_parent) return;
+		// for(let n of parent.childNodes)
+		// {
+		// 	if(n.nodeType === 8) continue;
+		// 	if(n.nodeType === 3 && !n.tagName)
+		// 	{
+		// 		n.nodeValue = n.nodeValue.trim();
+		// 		let restrictions = n.nodeValue === '' || n.nodeValue.includes('\n') || n.nodeValue.includes('\t') || n.nodeValue.includes('\r') || n.nodeValue.includes('undefined') || n.nodeValue.includes('null');
+		// 		if(restrictions)
+		// 			continue;
+		// 		if(n.nodeValue.includes('[state:'))
+		// 		{
+		// 			const state_regex = n.nodeValue.match(/\[state([:|a-z|A-Z|0-9|-|_])*\]/gm);
+		// 			if(state_regex)
+		// 			{
+		// 				for(let r of state_regex)
+		// 				{
+		// 					const reg = r.replace('[state', '').replace(']', '');
+		// 					const split = reg.trim().split(':');
+		// 					let state_buffer = [];
+		// 					for(let s of split)
+		// 					{
+		// 						if(s.trim() === '') continue;
+		// 						state_buffer = [...state_buffer, s];
+		// 					}
 							
-							if(state_buffer.length >= 1)
-							{
-								let state = state_buffer[0];
-								// this.set_node_state(state, n.parentNode, document.createElement(n.parentNode.tagName));
-								let value = this._states[state];
-								if(state_buffer.length > 1)
-								{
-									let aux = this._states[state];
-									for(let s of state_buffer)
-										aux = aux[s];
-									value = aux;
-								}
-								n.nodeValue = n.nodeValue.replace(r, value);
-								this.add_binder(state, new_parent, 'o');
-							}
-						}
-					}
-				}
-				if(parent.childNodes.length === 1)
-				{
-					if(parent.childNodes[0].nodeValue === n.nodeValue)
-						new_parent.innerHTML = n.nodeValue;
-				}
-			}
-			if(!n.tagName) continue;
+		// 					if(state_buffer.length >= 1)
+		// 					{
+		// 						let state = state_buffer[0];
+		// 						// this.set_node_state(state, n.parentNode, document.createElement(n.parentNode.tagName));
+		// 						let value = this._states[state];
+		// 						if(state_buffer.length > 1)
+		// 						{
+		// 							let aux = this._states[state];
+		// 							for(let s of state_buffer)
+		// 								aux = aux[s];
+		// 							value = aux;
+		// 						}
+		// 						n.nodeValue = n.nodeValue.replace(r, value);
+		// 						this.add_binder(state, new_parent, 'o');
+		// 					}
+		// 				}
+		// 			}
+		// 		}
+		// 		if(parent.childNodes.length === 1)
+		// 		{
+		// 			if(parent.childNodes[0].nodeValue === n.nodeValue)
+		// 				new_parent.innerHTML = n.nodeValue;
+		// 		}
+		// 	}
+		// 	if(!n.tagName) continue;
 
-			let node = document.createElement(n.tagName);
-			let comp = null;
+		// 	let node = document.createElement(n.tagName);
+		// 	let comp = null;
 
-			if(this._includes[n.tagName.toLowerCase()])
-			{
-				node = document.createElement('div');
-				comp = this.get_comp(n.tagName);
-				if(!comp)
-				{
-					this._includes[n.tagName.toLowerCase()] = node;
-				}else{
-					let props = {};
-					for(let a in n.attributes)
-					{
-						if(!n.attributes.hasOwnProperty(a)) continue;
-						let attr = n.attributes[a];
-						let k = attr.name.toLowerCase();
-						if(k === 'id' || k === 'class') continue;
-						let v = attr.value;
-						props[k] = v;
-					}
-					comp._bbox = node;
-					comp._props = props;
-					comp.init(props);
+		// 	if(this._includes[n.tagName.toLowerCase()])
+		// 	{
+		// 		node = document.createElement('div');
+		// 		comp = this.get_comp(n.tagName);
+		// 		if(!comp)
+		// 		{
+		// 			this._includes[n.tagName.toLowerCase()] = node;
+		// 		}else{
+		// 			let props = {};
+		// 			for(let a in n.attributes)
+		// 			{
+		// 				if(!n.attributes.hasOwnProperty(a)) continue;
+		// 				let attr = n.attributes[a];
+		// 				let k = attr.name.toLowerCase();
+		// 				if(k === 'id' || k === 'class') continue;
+		// 				let v = attr.value;
+		// 				props[k] = v;
+		// 			}
+		// 			comp._bbox = node;
+		// 			comp._props = props;
+		// 			comp.init(props);
 
-					node.appendChild(comp._rdom); //REAL, DONT TOUCH
-				}
-			}else if(n.tagName.toLowerCase() === 'style')
-			{
-				node.innerHTML = n.innerHTML;
-			}else if(n.tagName.toLowerCase() === 'link')
-			{
-				let load = this.include_css(n);
-			}else if(n.tagName.toLowerCase() === 'script')
-			{
-				let load = this.import_js(n, ()=>{});
-			}
+		// 			node.appendChild(comp._rdom); //REAL, DONT TOUCH
+		// 		}
+		// 	}else if(n.tagName.toLowerCase() === 'style')
+		// 	{
+		// 		node.innerHTML = n.innerHTML;
+		// 	}else if(n.tagName.toLowerCase() === 'link')
+		// 	{
+		// 		let load = this.include_css(n);
+		// 	}else if(n.tagName.toLowerCase() === 'script')
+		// 	{
+		// 		let load = this.import_js(n, ()=>{});
+		// 	}
 
-			new_parent.appendChild(node);
+		// 	new_parent.appendChild(node);
 
 
-			for(let a in n.attributes)
-			{
-				if(!n.attributes.hasOwnProperty(a)) continue;
-				let attr = n.attributes[a];
-				let k = attr.name.toLowerCase();
-				let v = attr.value;
-				if(k === 'id')
-					this._id[k] = node;
-				else if(k === 'ref')
-				{
-					this._id[v] = node;
-				}
-				else if(k === 'class')
-				{
-					if(!this._class[k])
-						this._class[k] = [];
-					this._class[k].push(node);
-					node.setAttribute(k, v);//RF
-				}else if(k.includes('on'))
-				{
-					this._ev[k] = {
-						type: k.replace('on', ''), 
-						action_key: v, 
-						action: (node)=>{
-							if(k.toLowerCase().includes('submit'))
-								node.preventDefault();
-							this.call_action(v, node);
-						}};
-					node.addEventListener(k.replace('on', ''), this._ev[k].action);
-				}else if(k === 'value')
-				{
-					if(v.includes('[state:'))
-					{
-						v = v.replace('[state:', '').replace(']', '');
-						let state = v;
-						// this.set_node_state(state, n.parentNode, node.parentNode);
-						v = v.replace(v, this._states[state]);
-						this.add_binder(state, node, 'i');
-						if(n.tagName.toLowerCase() === 'input')
-							if(n.attributes['type'])
-								if(n.attributes['type'].value.toLowerCase() === 'text' || n.attributes['type'].value.toLowerCase() === 'password')
-									this._istates[state] = node;
-					}
-					node.value = v;
-				}else if(k === 'type'){
-					node.setAttribute('type', v);
-				}else if(k === 'style'){
-					node.setAttribute(k, v);
-				}else if(k === 'key'){
-					node[k] = v;
-				}else{
-					node[k] = v;
-				}
-			}
-			this.analize_dom_node(n, node);
-		}
+		// 	for(let a in n.attributes)
+		// 	{
+		// 		if(!n.attributes.hasOwnProperty(a)) continue;
+		// 		let attr = n.attributes[a];
+		// 		let k = attr.name.toLowerCase();
+		// 		let v = attr.value;
+		// 		if(k === 'id')
+		// 			this._id[k] = node;
+		// 		else if(k === 'ref')
+		// 		{
+		// 			this._id[v] = node;
+		// 		}
+		// 		else if(k === 'class')
+		// 		{
+		// 			if(!this._class[k])
+		// 				this._class[k] = [];
+		// 			this._class[k].push(node);
+		// 			node.setAttribute(k, v);//RF
+		// 		}else if(k.includes('on'))
+		// 		{
+		// 			this._ev[k] = {
+		// 				type: k.replace('on', ''), 
+		// 				action_key: v, 
+		// 				action: (node)=>{
+		// 					if(k.toLowerCase().includes('submit'))
+		// 						node.preventDefault();
+		// 					this.call_action(v, node);
+		// 				}};
+		// 			node.addEventListener(k.replace('on', ''), this._ev[k].action);
+		// 		}else if(k === 'value')
+		// 		{
+		// 			if(v.includes('[state:'))
+		// 			{
+		// 				v = v.replace('[state:', '').replace(']', '');
+		// 				let state = v;
+		// 				// this.set_node_state(state, n.parentNode, node.parentNode);
+		// 				v = v.replace(v, this._states[state]);
+		// 				this.add_binder(state, node, 'i');
+		// 				if(n.tagName.toLowerCase() === 'input')
+		// 					if(n.attributes['type'])
+		// 						if(n.attributes['type'].value.toLowerCase() === 'text' || n.attributes['type'].value.toLowerCase() === 'password')
+		// 							this._istates[state] = node;
+		// 			}
+		// 			node.value = v;
+		// 		}else if(k === 'type'){
+		// 			node.setAttribute('type', v);
+		// 		}else if(k === 'style'){
+		// 			node.setAttribute(k, v);
+		// 		}else if(k === 'key'){
+		// 			node[k] = v;
+		// 		}else{
+		// 			node[k] = v;
+		// 		}
+		// 	}
+		// 	this.analize_dom_node(n, node);
+		// }
 	};
 	add_binder = function(key, node, type)
 	{
