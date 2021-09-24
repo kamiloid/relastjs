@@ -6,9 +6,6 @@ export default class Rapp{
 	_parent = null;
 	_name = '';
 	_bbox = null;
-	_vdom = null;
-	_rdom = null;
-	_update_dom = true;
 	_id = {};//save nodes indexed with ref:id attribute
 	_class = {};
 	_ev = {};
@@ -18,19 +15,12 @@ export default class Rapp{
 	_prev_states = {};
 	_rstates = {};
 	_istates = {};
-	// _uidstates = {};
-	_view = {main: '<div></div>', iterators: {}, style:``};
+	_view = {main: '<fragment></fragment>', iterators: {}, style:``};
 	_net = {};
 	_mods = {};
 	_includes = {};
 	_props = {};
 	_app_sections = {};
-
-	//
-
-	// 
-
-
 	constructor(conf)
 	{
 		this._conf = conf;
@@ -509,7 +499,6 @@ export default class Rapp{
 		if(!key) return;
 		if(key.trim() == '') return;
 		if(!this._actions[key]) return;
-		this._update_dom = true;
 		return this._actions[key](args);
 	};
 	method = function(key, method)
@@ -523,7 +512,6 @@ export default class Rapp{
 		if(!key) return;
 		if(key.trim() == '') return;
 		if(!this._methods[key]) return;
-		this._update_dom = false;
 		return this._methods[key](args);
 	};
 	render = function(state, view, params = 20)
@@ -552,13 +540,6 @@ export default class Rapp{
 								txt = txt.replace(regex, v[a] || '');
 					}
 					renderer += txt;
-					// renderer += this._view.iterators[view].replace(/\[v\]/g, v.v).replace(/\[k\]/g, v.k);
-					// for(let p = 0; p <= params; p++)
-					// {
-					// 	if(v[`p${p}`] === undefined || v[`p${p}`] === null) continue;
-					// 	let re = new RegExp(`\\[p${p}\\]`, 'g');
-					// 	renderer = renderer.replace(re, v[`p${p}`]);
-					// }
 				}
 			}
 		}
