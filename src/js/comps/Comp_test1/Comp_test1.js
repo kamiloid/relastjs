@@ -2,7 +2,7 @@
 // IMPORTS [ ONLY WITH WEBPACK ]
 // --------------------------------------------------------------------------------
 // import [class name | variable]('file_path[.js]');
-import Rapp from '../relast.js';
+import Rapp from '../../relast.js';
 import view from './Comp_test1.html';
 import css from './Comp_test1.css';
 import scss from './Comp_test1.scss';

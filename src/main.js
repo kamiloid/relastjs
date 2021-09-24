@@ -1,5 +1,5 @@
 import Rapp from './js/relast.js';
-import App from './js/App.js';
+import App from './js/App/App.js';
 require('./assets/fonts/fonts.js');
 
 window.onload = function()

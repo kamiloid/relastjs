@@ -2,9 +2,9 @@
 // IMPORTS [ ONLY WITH WEBPACK ]
 // --------------------------------------------------------------------------------
 // import [class name | variable]('file_path[.js]');
-import Rapp from './relast.js';
+import Rapp from '../relast.js';
 import app_view from './App.html';
-import Comp_test1 from './comps/Comp_test1.js';
+import Comp_test1 from '../comps/Comp_test1/Comp_test1.js';
 // --------------------------------------------------------------------------------
 // --------------------------------------------------------------------------------
 
