@@ -31,7 +31,7 @@ export default class Comp_test1 extends Rapp
 		// --------------------------------------------------------------------------------
 		this.state('val', 1);
 		this.state('text', 'hello');
-		this.state('buffer', [{k: 1, v: 2, p0: 3}, {k: 4, v: 5, p0: 6}]);
+		this.state('buffer', [{k: 1, v: 2, p0: 3, aaaa: 'asdasdas'}, {k: 4, v: 5, p0: 6, aaaa: 'boiurfbwi'}]);
 	}
 	methods(){}
 	run = function(props)

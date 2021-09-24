@@ -543,13 +543,22 @@ export default class Rapp{
 				if(typeof(v) !== 'object')
 					renderer += this._view.iterators[view].replace(/\[v\]/g, v).replace(/\[k\]/g, k);
 				else{
-					renderer += this._view.iterators[view].replace(/\[v\]/g, v.v).replace(/\[k\]/g, v.k);
-					for(let p = 0; p <= params; p++)
+					let txt = this._view.iterators[view];
+					for(let a in v)
 					{
-						if(v[`p${p}`] === undefined || v[`p${p}`] === null) continue;
-						let re = new RegExp(`\\[p${p}\\]`, 'g');
-						renderer = renderer.replace(re, v[`p${p}`]);
+						const regex = new RegExp(`\\[${a}\\]`, 'g');
+						if(txt.match(regex))
+							if(txt.match(regex).length > 0)
+								txt = txt.replace(regex, v[a] || '');
 					}
+					renderer += txt;
+					// renderer += this._view.iterators[view].replace(/\[v\]/g, v.v).replace(/\[k\]/g, v.k);
+					// for(let p = 0; p <= params; p++)
+					// {
+					// 	if(v[`p${p}`] === undefined || v[`p${p}`] === null) continue;
+					// 	let re = new RegExp(`\\[p${p}\\]`, 'g');
+					// 	renderer = renderer.replace(re, v[`p${p}`]);
+					// }
 				}
 			}
 		}
