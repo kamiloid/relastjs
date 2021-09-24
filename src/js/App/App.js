@@ -75,8 +75,7 @@ export default class App extends Rapp
 				url('assets/fonts/abel-regular-webfont.woff') format('woff');
 			font-weight: normal;
 			font-style: normal;
-		}
-		button{font-size: 20px;}`;
+		}`;
 
 		this._view.main = app_view;
 		// --------------------------------------------------------------------------------
