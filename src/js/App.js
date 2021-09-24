@@ -3,9 +3,10 @@
 // --------------------------------------------------------------------------------
 // import [class name | variable]('file_path[.js]');
 import Rapp from './relast.js';
+import app_view from './App.html';
 import Comp_test1 from './comps/Comp_test1.js';
-// // --------------------------------------------------------------------------------
-// // --------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------
 
 export default class App extends Rapp
 {
@@ -54,26 +55,11 @@ export default class App extends Rapp
 		// this.call_action('action_key', args[object]);
 		// --------------------------------------------------------------------------------
 		// --------------------------------------------------------------------------------
-		this.action('test_action1', (args)=>
-			{
-				if(this.get_state('a') === 2)
-					this.state('a', 1);
-				else
-					this.state('a', 2);
-			});
-		this.action('change_input', (args)=>
-			{
-				this.state('input', args.target.value);
-			});
-		this.action('form_submit', (args)=>
-			{
-				console.log(args);
-			});
 
 		// --------------------------------------------------------------------------------
 		// HTML VIEWs
 		// --------------------------------------------------------------------------------
-		this._view.iterators.items = `<p key='[k]'>[v]</p>`;
+		// this._view.iterators.items = `<p key='[k]'>[v]</p>`;
 
 		this._view.style =`
 		@font-face {
@@ -92,22 +78,7 @@ export default class App extends Rapp
 		}
 		button{font-size: 20px;}`;
 
-		this._view.main = `<div>
-			<p>${this.get_state('a')}</p>
-			${this.get_state('a') === 1 ? 
-				`<p>aaaaaaa</p>` 
-				: 
-				`<p>bbbbbb</p>`
-			}
-			<button onclick='test_action1'>button 1</button>
-			${this.render('b', 'items')}
-			${this.render('c', 'items')}
-		</div>`;
-
-		this._view.test1 = `<Comp_test1 id='aaa' class='bbb' action='aaaaaaa'></Comp_test1><br/>a
-		<input type='text' onkeyup='change_input' value='[state:input]' /><br/>
-		<input type='text' onkeyup='change_input' value='[state:input]' />
-		<form onsubmit='form_submit'><input type='submit' value='submit 1'></form>`;
+		this._view.main = app_view;
 		// --------------------------------------------------------------------------------
 		// --------------------------------------------------------------------------------
 	}
