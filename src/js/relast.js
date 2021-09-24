@@ -54,7 +54,6 @@ export default class Rapp{
 				node.add_section(name, mod, title, restricted);
 			}	
 		}
-
 	};
 	sync_states = function()
 	{

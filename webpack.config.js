@@ -48,13 +48,13 @@ module.exports = ( env, options )=>
 					]
 				},
 				{
-					test: /\.css$/,
+					test: /\.(sa|sc|c)ss$/,
 					use: [{
 						loader: MiniCssExtractPlugin.loader,
 						options: {
 							publicPath: './dist'
 						}
-					}, 'css-loader']
+					}, 'css-loader', 'sass-loader']
 				},
 				{
 					test: /\.svg$/,
