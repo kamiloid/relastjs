@@ -116,6 +116,15 @@ export default class Rapp{
 	init = function(props = null)
 	{
 		if(!this._bbox) return;
+		if(this.created)
+			this.created(props || this._props);
+		if(this.states)
+		{
+			this.states(props || this._props);
+			this.sync_states();
+		}
+		if(this.methods)
+			this.methods(props || this._props);
 		if(this.run){
 			this.run(props || this._props);
 			// this.run_sub_mods(this);
@@ -124,7 +133,11 @@ export default class Rapp{
 	};
 	update = function(props = null)
 	{
-		this.init(props || this._props);
+		if(this.run){
+			this.run(props || this._props);
+			// this.run_sub_mods(this);
+		}
+		this.exec();
 	};
 	exec = function()
 	{
