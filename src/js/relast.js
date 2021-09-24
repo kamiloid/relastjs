@@ -19,7 +19,7 @@ export default class Rapp{
 	_rstates = {};
 	_istates = {};
 	// _uidstates = {};
-	_view = {main: '<div></div>', iterators: {}, style:`<style></style>`};
+	_view = {main: '<div></div>', iterators: {}, style:``};
 	_net = {};
 	_mods = {};
 	_includes = {};
@@ -27,6 +27,7 @@ export default class Rapp{
 	_app_sections = {};
 
 	//
+
 	// 
 
 
@@ -221,6 +222,7 @@ export default class Rapp{
 				if(split[1] === null || split[1] === undefined) continue;
 				if(split[2] === null || split[2] === undefined) continue;
 				const state = split[1];
+				this._istates[state] = true;
 				if(!this._states[state]) continue;
 				if(this._states[state].length === 0) continue;
 				const html = split[2].substring(0, split[2].length - 2);
@@ -290,38 +292,17 @@ export default class Rapp{
 				if(split[2] === null || split[2] === undefined) continue;
 				try{
 					const cond = split[1];
-					let buffer = cond.split('and').concat(cond.split('or'));
-					let buffer2 = cond.match(/and|or/g) || [];
-					let index = 0;
-					let cond_index = 0
-					let final_result = true;
-					for(let b of buffer)
+					let final_cond = cond.replace(/and/g, '&&').replace(/or/g, '||');
+					for(let s in this._states)
 					{
-						if(b.trim() === '') continue;
-						const cond_split = b.trim().split(/[=|<|>|>=|<=|<>|\s]+/g);
-						const cond_match = b.trim().match(/[=|<|>|>=|<=|<>]+/g);
-						const arg1 = cond_split[cond_index + index];
-						if(arg1 === undefined || arg1 === null) continue;
-						const state = this._states[arg1.trim()];
-						if(state === undefined) continue;
-						let arg2 = cond_split[cond_index + index + 1];
-						if(arg2 === undefined || arg2 === null) continue;
-						arg2 = parseInt(arg2.trim()) === isNaN ? arg2.trim() : parseInt(arg2.trim());
-						arg2 = typeof(arg2) === 'string' ? ( arg2 === 'true' ? true : false ) : arg2;
-						const _eval = cond_match[index];
-						let result = state === arg2;
-						if(_eval === '>' && typeof(arg2) === 'number') result = state > arg2;
-						else if(_eval === '<' && typeof(arg2) === 'number') result = state < arg2;
-						else if(_eval === '>=' && typeof(arg2) === 'number') result = state >= arg2;
-						else if(_eval === '<=' && typeof(arg2) === 'number') result = state <= arg2;
-						else if(_eval === '<>') result = state !== arg2;
-						const joiner = buffer2.length > 0 ? buffer2[index] : '';
-						if(joiner === 'and') final_result &&= result;
-						else if(joiner === 'or') final_result ||= result;
-						else final_result = result;
-						cond_index++;
-						index++;
+						if(!this._states.hasOwnProperty(s)) continue;
+						const regex = new RegExp(s, 'g');
+						if(final_cond.match(regex))
+							this._istates[s] = true;
+						final_cond = final_cond.replace(regex, this._states[s]);
 					}
+					let final_result = eval(final_cond);
+
 					const resp_true = split.length === 3 ? split[2].substring(0, split[2].length - 2) : split[2];
 					const resp_false = split.length === 4 ? split[3].substring(0, split[3].length - 2) : '';
 					
@@ -344,66 +325,33 @@ export default class Rapp{
 	{
 		let str_dom = this._view.main;
 
-
-
-		// let str_dom = ``;
-		// let str_styles = ``;
-		// for(let v in this._view)
-		// {
-		// 	if(!this._view.hasOwnProperty(v)) continue;
-		// 	if(v === 'iterators') continue;
-		// 	if(!this._view[v]) continue;
-		// 	if(v == 'style')
-		// 	{
-		// 		if(!this._view[v].includes('<style>'))
-		// 			this._view[v] = `<style>${this._view[v]}`;
-		// 		if(!this._view[v].includes('</style>'))
-		// 			this._view[v] = `${this._view[v]}</style>`;
-		// 		str_styles += this._view[v];
-		// 		continue;
-		// 	}
-		// 	str_dom += `${this._view[v]}`;
-		// }
+		const styles = `<style>${this._view.style.replace(/\<style\>/g, '').replace(/\<\/style\>/g, '')}</style>`;
 
 		str_dom = this.html_regex(str_dom);
 		this.translate(str_dom);
-
-		// if(this._vdom)
-		// 	this.clean_dom(this._vdom);
-		// this._vdom = document.createElement('div');
-		// if(this._rdom)
-		// 	this.clean_dom(this._rdom);
-		// this._rdom = document.createElement('div');
-		// this._vdom.innerHTML = str_dom;
-
-		// this.analize_dom_node(this._vdom, this._rdom);
-		// this._bbox.innerHTML = '';
-		// for(let c of this._rdom.childNodes)
-		// 	this._bbox.appendChild(c);
-		// if(str_styles.trim() !== '')
-		// {
-		// 	let styles = document.createElement('div');
-		// 	styles.innerHTML = str_styles;
-		// 	this._bbox.appendChild(styles);
-		// }
-		// if(this.rendered)
-		// 	this.rendered();
+		const main = this._main || this;
+		if(this._view.style.trim() !== '' && !main._view.style.includes(this._view.style))
+			main._view.style += this._view.style;
+		if(main === this)
+		{
+			const style_node = document.createElement('style');
+			style_node.innerHTML = main._view.style;
+			if(this._bbox)
+				this._bbox.appendChild(style_node);
+		}
 	};
 	translate = function(html)
 	{
-		// console.log('-----------------------------------------');
-		// console.log(html);
-		// console.log('-----------------------------------------');
+		if(this._bbox)
+			this._bbox.innerHTML = '';
 		const root = document.createElement('div');
 		root.innerHTML = html;
 		let aux = root.childNodes[0];
-		const visual_root = this.translate_nodes(aux, this._bbox);
-		// console.log('-----------------------------------------');
-		// console.log(11, visual_root, this._bbox);
+		const visual_root = this.translate_nodes(aux, this._bbox, this._main || this);
 		if(this._bbox && visual_root)
 			this._bbox.appendChild(visual_root);
 	};
-	translate_nodes = function(node, parent)
+	translate_nodes = function(node, parent, main)
 	{
 		if(node === undefined || node === null) return null;
 		// Avoid comments nodes
@@ -422,12 +370,60 @@ export default class Rapp{
 				let comp = this.get_comp(n.tagName);
 				comp._name = ref_attr || this._includes[node.tagName.toLowerCase()];
 				this._mods[comp._name] = comp;
+				comp._main = main;
+				comp._parent = this;
 				comp._bbox = parent;
-				comp.init();
+				const props = {};
+				for(let a of node.attributes)
+				{
+					let val = a.value;
+					if(this._states[a.value])
+						val = this._states[a.value];
+					props[a.name] = val;
+				}
+				comp.init(props);
+			}else if(node.tagName.toLowerCase() === 'input')
+			{
+				// if(node.attributes['type'])
+				// {
+				// 	if(node.attributes['type'].value.toLowerCase() === 'text')
+				// 	{
+				// 	}
+				// }
+			}
+			for(let a of node.attributes)
+			{
+				if(a.value.toLowerCase().includes('[state:'))
+				{
+					const match = a.value.toLowerCase().match(/\[state:([\s|a-z|A-Z|0-9])*\]/g);
+					if(match)
+					{
+						for(let m of match)
+						{
+							const split = m.replace('[', '').replace(']', '').split(':');
+							const str_state = split[1];
+							a.value = a.value.replace(`[state:${str_state}]`, this._states[str_state.trim()]);
+							if(a.name === 'value')
+								this.add_binder(str_state, n, 'i');
+						}
+						n.setAttribute(a.name, a.value);
+					}
+				}else{
+					if(a.name.toLowerCase().includes('on'))
+					{
+						n.addEventListener(a.name.replace('on', ''), (e)=>
+						{
+							if(this._actions[a.value.trim()])
+								this.call_action(a.value.trim(), {ev:e, target: n});
+						});
+					}else{
+						n[a.name] = a.value;
+					}
+				}
 			}
 			for(let child of node.childNodes)
 			{
-				const visual_child = this.translate_nodes(child, n);
+				const visual_child = this.translate_nodes(child, n, main);
 				if(visual_child)
 					if(n.tagName.toLowerCase() !== 'fragment')
 						n.appendChild(visual_child, n);
@@ -442,161 +438,26 @@ export default class Rapp{
 			let restrictions = node.nodeValue === '' || node.nodeValue.includes('\n') || node.nodeValue.includes('\t') || node.nodeValue.includes('\r') || node.nodeValue.includes('undefined') || node.nodeValue.includes('null');
 			if(restrictions)
 				return null;
-			n = document.createTextNode(node.nodeValue);
+			// CHECK IF THERE ARE STATES IN THIS NODE
+			n = document.createTextNode('');
+			let node_txt = node.nodeValue;
+			if(node_txt.includes('[state:'))
+			{
+				const match = node_txt.match(/\[state:([\s|a-z|A-Z|0-9])*\]/g);
+				if(match)
+				{
+					for(let m of match)
+					{
+						const split = m.replace('[', '').replace(']', '').split(':');
+						const str_state = split[1];
+						node_txt = node_txt.replace(`[state:${str_state}]`, this._states[str_state.trim()]);
+						this.add_binder(str_state, n, 'o');
+					}
+				}
+			}
+			n.nodeValue = node_txt;
 		}
 		return n;
-	};
-	analize_dom_node = function(parent, new_parent)
-	{
-		// if(!parent || !new_parent) return;
-		// for(let n of parent.childNodes)
-		// {
-		// 	if(n.nodeType === 8) continue;
-		// 	if(n.nodeType === 3 && !n.tagName)
-		// 	{
-		// 		n.nodeValue = n.nodeValue.trim();
-		// 		let restrictions = n.nodeValue === '' || n.nodeValue.includes('\n') || n.nodeValue.includes('\t') || n.nodeValue.includes('\r') || n.nodeValue.includes('undefined') || n.nodeValue.includes('null');
-		// 		if(restrictions)
-		// 			continue;
-		// 		if(n.nodeValue.includes('[state:'))
-		// 		{
-		// 			const state_regex = n.nodeValue.match(/\[state([:|a-z|A-Z|0-9|-|_])*\]/gm);
-		// 			if(state_regex)
-		// 			{
-		// 				for(let r of state_regex)
-		// 				{
-		// 					const reg = r.replace('[state', '').replace(']', '');
-		// 					const split = reg.trim().split(':');
-		// 					let state_buffer = [];
-		// 					for(let s of split)
-		// 					{
-		// 						if(s.trim() === '') continue;
-		// 						state_buffer = [...state_buffer, s];
-		// 					}
-							
-		// 					if(state_buffer.length >= 1)
-		// 					{
-		// 						let state = state_buffer[0];
-		// 						// this.set_node_state(state, n.parentNode, document.createElement(n.parentNode.tagName));
-		// 						let value = this._states[state];
-		// 						if(state_buffer.length > 1)
-		// 						{
-		// 							let aux = this._states[state];
-		// 							for(let s of state_buffer)
-		// 								aux = aux[s];
-		// 							value = aux;
-		// 						}
-		// 						n.nodeValue = n.nodeValue.replace(r, value);
-		// 						this.add_binder(state, new_parent, 'o');
-		// 					}
-		// 				}
-		// 			}
-		// 		}
-		// 		if(parent.childNodes.length === 1)
-		// 		{
-		// 			if(parent.childNodes[0].nodeValue === n.nodeValue)
-		// 				new_parent.innerHTML = n.nodeValue;
-		// 		}
-		// 	}
-		// 	if(!n.tagName) continue;
-
-		// 	let node = document.createElement(n.tagName);
-		// 	let comp = null;
-
-		// 	if(this._includes[n.tagName.toLowerCase()])
-		// 	{
-		// 		node = document.createElement('div');
-		// 		comp = this.get_comp(n.tagName);
-		// 		if(!comp)
-		// 		{
-		// 			this._includes[n.tagName.toLowerCase()] = node;
-		// 		}else{
-		// 			let props = {};
-		// 			for(let a in n.attributes)
-		// 			{
-		// 				if(!n.attributes.hasOwnProperty(a)) continue;
-		// 				let attr = n.attributes[a];
-		// 				let k = attr.name.toLowerCase();
-		// 				if(k === 'id' || k === 'class') continue;
-		// 				let v = attr.value;
-		// 				props[k] = v;
-		// 			}
-		// 			comp._bbox = node;
-		// 			comp._props = props;
-		// 			comp.init(props);
-
-		// 			node.appendChild(comp._rdom); //REAL, DONT TOUCH
-		// 		}
-		// 	}else if(n.tagName.toLowerCase() === 'style')
-		// 	{
-		// 		node.innerHTML = n.innerHTML;
-		// 	}else if(n.tagName.toLowerCase() === 'link')
-		// 	{
-		// 		let load = this.include_css(n);
-		// 	}else if(n.tagName.toLowerCase() === 'script')
-		// 	{
-		// 		let load = this.import_js(n, ()=>{});
-		// 	}
-
-		// 	new_parent.appendChild(node);
-
-
-		// 	for(let a in n.attributes)
-		// 	{
-		// 		if(!n.attributes.hasOwnProperty(a)) continue;
-		// 		let attr = n.attributes[a];
-		// 		let k = attr.name.toLowerCase();
-		// 		let v = attr.value;
-		// 		if(k === 'id')
-		// 			this._id[k] = node;
-		// 		else if(k === 'ref')
-		// 		{
-		// 			this._id[v] = node;
-		// 		}
-		// 		else if(k === 'class')
-		// 		{
-		// 			if(!this._class[k])
-		// 				this._class[k] = [];
-		// 			this._class[k].push(node);
-		// 			node.setAttribute(k, v);//RF
-		// 		}else if(k.includes('on'))
-		// 		{
-		// 			this._ev[k] = {
-		// 				type: k.replace('on', ''), 
-		// 				action_key: v, 
-		// 				action: (node)=>{
-		// 					if(k.toLowerCase().includes('submit'))
-		// 						node.preventDefault();
-		// 					this.call_action(v, node);
-		// 				}};
-		// 			node.addEventListener(k.replace('on', ''), this._ev[k].action);
-		// 		}else if(k === 'value')
-		// 		{
-		// 			if(v.includes('[state:'))
-		// 			{
-		// 				v = v.replace('[state:', '').replace(']', '');
-		// 				let state = v;
-		// 				// this.set_node_state(state, n.parentNode, node.parentNode);
-		// 				v = v.replace(v, this._states[state]);
-		// 				this.add_binder(state, node, 'i');
-		// 				if(n.tagName.toLowerCase() === 'input')
-		// 					if(n.attributes['type'])
-		// 						if(n.attributes['type'].value.toLowerCase() === 'text' || n.attributes['type'].value.toLowerCase() === 'password')
-		// 							this._istates[state] = node;
-		// 			}
-		// 			node.value = v;
-		// 		}else if(k === 'type'){
-		// 			node.setAttribute('type', v);
-		// 		}else if(k === 'style'){
-		// 			node.setAttribute(k, v);
-		// 		}else if(k === 'key'){
-		// 			node[k] = v;
-		// 		}else{
-		// 			node[k] = v;
-		// 		}
-		// 	}
-		// 	this.analize_dom_node(n, node);
-		// }
 	};
 	add_binder = function(key, node, type)
 	{
@@ -625,19 +486,17 @@ export default class Rapp{
 				let node = e.node;
 				if(!node) continue;
 				let type = e.type;
-				if(node.value)
-					node.value = this._states[key];
-				else
-					node.innerHTML = this._states[key];
+				if(node.nodeType !== 3)
+				{
+					if(node.hasAttribute('value'))
+						node.value = value;
+				}else
+					node.nodeValue = this._states[key];
 			}
 		}
+		if(this._istates[key])
+			this.update();
 		return {update: ()=>{this.update()}};
-	};
-	get_state = function(key)
-	{
-		if(!key) return;
-		if(key.trim() == '') return;
-		return this._states[key];
 	};
 	action = function(key, action)
 	{
@@ -670,7 +529,7 @@ export default class Rapp{
 	render = function(state, view, params = 20)
 	{
 		if(!state || !view) return ``;
-		state = this.get_state(state);
+		state = this.state(state);
 		let renderer = ``;
 		if(typeof(state) === 'string')
 		{

@@ -1,6 +1,14 @@
 <Fragment>
     <h2>Component 1</h2>
     <section>
-        <p>ifwebfiwefbwib</p>
+        <button onclick='aaaclick'>aaa</button>
+        <button onclick='aaaclick2'>bbb</button>
+        {%render:buffer:<div>[k]</div>%}
+        {%if:val >= 2 and val <= 4:<span>hello world</span>:<span>bye world</span>%}
+    </section>
+    <section>
+        <input type='text' value='[state:text]' onkeyup='change_text' />
+        <input type='text' value='[state:text]' onkeyup='change_text' />
+        <p>ifwebfiwefbwib <span>[state:text]</span><span>[state:val]</span></p>
     </section>
 </Fragment>

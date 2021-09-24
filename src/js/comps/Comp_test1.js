@@ -30,6 +30,8 @@ export default class Comp_test1 extends Rapp
 		// --------------------------------------------------------------------------------
 		// --------------------------------------------------------------------------------
 		this.state('val', 1);
+		this.state('text', 'hello');
+		this.state('buffer', [{k: 1, v: 2, p0: 3}, {k: 4, v: 5, p0: 6}]);
 	}
 	methods(){}
 	run = function(props)
@@ -41,6 +43,20 @@ export default class Comp_test1 extends Rapp
 		// this.call_action('action_key', args[object]);
 		// --------------------------------------------------------------------------------
 		// --------------------------------------------------------------------------------
+		this.action('change_text', (node)=>
+		{
+			this.state('text', node.target.value);
+		});
+		this.action('aaaclick', ()=>
+		{
+			const buffer = this.state('buffer');
+			buffer[0].k = 10;
+			this.state('buffer', buffer);
+		});
+		this.action('aaaclick2', ()=>
+		{
+			this.state('val', this.state('val') + 1);
+		});
 
 		// --------------------------------------------------------------------------------
 		// HTML VIEWs
