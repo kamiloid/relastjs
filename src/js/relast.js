@@ -84,7 +84,6 @@ export default class Rapp{
 		let buffer = [];
 		for(let k in this._states)
 		{
-			console.log(this._prev_states[k].v, this._states[k]);
 			if(this._prev_states[k].v !== this._states[k])
 			{
 				this._prev_states[k].changed = true;
@@ -202,7 +201,8 @@ export default class Rapp{
 	};
 	if_regex_eval = function(str_dom)
 	{
-		return str_dom.match(/\{\%if([:|a-z|A-Z|0-9|-|_|<|>|\\|\/|\s|=|'|\[|\]|"|#])*>\%\}/gm);
+		// return str_dom.match(/\{\%if([:|a-z|A-Z|0-9|-|_|<|>|\\|\/|\s|=|'|\[|\]|"|#])*>\%\}/gm);
+		return str_dom.match(/\{\%if([:|a-z|A-Z|0-9|\W|_])*>([\r|\s|\t])*\%\}/gm);
 	}
 	for_regex_eval = function(str_dom)
 	{
@@ -288,7 +288,7 @@ export default class Rapp{
 			if(regexp.length === 0) return str_dom;
 			for(let r of regexp)
 			{
-				const split = r.split(':');
+				const split = r.replace(/\[state:/g, '[state*').split(':');
 				let str = '';
 				if(split[1] === null || split[1] === undefined) continue;
 				if(split[2] === null || split[2] === undefined) continue;
@@ -301,14 +301,18 @@ export default class Rapp{
 						const regex = new RegExp(s, 'g');
 						if(final_cond.match(regex))
 							this._istates[s] = true;
-						final_cond = final_cond.replace(regex, this._states[s]);
+						let val = this._states[s];
+						if(typeof(val) === 'string')
+							val = `'${val}'`;
+						final_cond = final_cond.replace(regex, val);
 					}
 					let final_result = eval(final_cond);
 
-					const resp_true = split.length === 3 ? split[2].substring(0, split[2].length - 2) : split[2];
-					const resp_false = split.length === 4 ? split[3].substring(0, split[3].length - 2) : '';
+					const resp_true = split.length === 3 ? split[2].replace(/\[state\*/g, '[state:').substring(0, split[2].length - 2) : split[2].replace(/\[state\*/g, '[state:');
+					const resp_false = split.length === 4 ? split[3].replace(/\[state\*/g, '[state:').substring(0, split[3].length - 2) : '';
 					
 					const html = final_result ? resp_true : resp_false;
+					
 					str_dom = str_dom.replace(r, html);
 					str_dom = this.html_regex(str_dom);
 				}catch(e){console.log(e);}
@@ -381,6 +385,11 @@ export default class Rapp{
 					let val = a.value;
 					if(this._states[a.value])
 						val = this._states[a.value];
+					if(val.match(/\[state:([a-z|A-Z|0-9|\W|_])*\]/g))
+					{
+						val = val.replace('[state:', '').replace(']', '').trim();
+						val = this._states[val];
+					}
 					props[a.name] = val;
 				}
 				comp.init(props);
@@ -395,9 +404,13 @@ export default class Rapp{
 			}
 			for(let a of node.attributes)
 			{
+				if(a.name.toLowerCase() === 'class')
+				{
+					n.setAttribute(a.name, a.value);
+				}
 				if(a.value.toLowerCase().includes('[state:'))
 				{
-					const match = a.value.toLowerCase().match(/\[state:([\s|a-z|A-Z|0-9])*\]/g);
+					const match = a.value.toLowerCase().match(/\[state:([\s|\w|_])*\]/g);
 					if(match)
 					{
 						for(let m of match)
@@ -410,17 +423,18 @@ export default class Rapp{
 						}
 						n.setAttribute(a.name, a.value);
 					}
-				}else{
-					if(a.name.toLowerCase().includes('on'))
+				}
+				if(a.name.toLowerCase().includes('on'))
+				{
+					n.addEventListener(a.name.replace('on', ''), (e)=>
 					{
-						n.addEventListener(a.name.replace('on', ''), (e)=>
-						{
-							if(this._actions[a.value.trim()])
-								this.call_action(a.value.trim(), {ev:e, target: n});
-						});
-					}else{
-						n[a.name] = a.value;
-					}
+						if(node.tagName.toLowerCase() === 'form')
+							e.preventDefault();
+						if(this._actions[a.value.trim()])
+							this.call_action(a.value.trim(), {ev:e, target: n});
+					});
+				}else{
+					n[a.name] = a.value;
 				}
 			}
 			for(let child of node.childNodes)
